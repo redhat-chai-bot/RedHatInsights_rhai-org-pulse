@@ -1,6 +1,6 @@
 const { fetchAllJqlResults } = require('../../../../shared/server/jira');
 
-const PROJECTS = ['OCPBUGS', 'CNTRLPLANE', 'TRT'];
+const PROJECTS = ['OCPBUGS', 'CNTRLPLANE', 'TRT', 'WINC', 'MCO', 'NE'];
 const AGENT_LABEL = 'issue-for-agent';
 const PROCESSED_LABEL = 'agent-processed';
 const READY_TO_SOLVE_LABEL = 'ready-to-solve';

@@ -16,7 +16,7 @@
 
     <template v-else>
       <!-- Team selector with inline stats -->
-      <div class="px-6 pt-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+      <div class="px-6 pt-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
         <button
           v-for="team in teamOptions"
           :key="team.key"
@@ -215,6 +215,9 @@ const TEAMS = [
   { key: 'installer', label: 'Installer', components: ['Installer / openshift-installer'] },
   { key: 'trt', label: 'TRT', projectPrefix: 'TRT' },
   { key: 'edge-ecosystem', label: 'Edge & Ecosystem', components: [] },
+  { key: 'windows-containers', label: 'Windows Containers', components: ['Networking / windows-machine-config-operator'] },
+  { key: 'mco', label: 'MCO', components: ['Machine Config Operator'] },
+  { key: 'ingress', label: 'Ingress', components: ['Networking / router'] },
 ];
 
 const selectedTeam = ref('all');
