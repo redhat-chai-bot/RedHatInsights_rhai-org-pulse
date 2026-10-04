@@ -133,6 +133,25 @@ function readProjectRoster(projects, projectId) {
     }
   }
 
+  // Include active people who have no team assignments in an "Unassigned" group
+  // so they are not silently lost from the roster view.
+  const assignedAccountIds = new Set();
+  for (const members of membershipsByTeamId.values()) {
+    for (const id of members.keys()) assignedAccountIds.add(id);
+  }
+  const unassigned = people.filter(p => p.active && !assignedAccountIds.has(p.accountId));
+  if (unassigned.length > 0) {
+    teamMap['Unassigned'] = {
+      displayName: 'Unassigned',
+      members: unassigned.map(p => ({
+        name: p.displayName.trim(),
+        jiraDisplayName: p.displayName.trim(),
+        customFields: {}
+      })),
+      metadata: {}
+    };
+  }
+
   const available = Object.values(teamMap).some(team => team.members.length > 0);
   return {
     status: 200,

@@ -345,7 +345,7 @@ function createProjectProfileRegistry(profiles) {
 
   return Object.freeze({
     schemaVersion: PUBLICATION_SCHEMA_VERSION,
-    get: projectId => profileMap.get(projectId) || null,
+    get: projectId => profileMap.get(normalizeProjectId(projectId)) || null,
     list: () => Array.from(profileMap.values()),
     qualifyStorageKey,
     publicationStatusKey,

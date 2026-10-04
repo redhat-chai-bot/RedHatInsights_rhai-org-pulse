@@ -8,17 +8,25 @@ const error = ref(null)
 const selectedOrgKey = ref(null)
 const _rosterProjectId = useProjectId()
 
+let rosterRequestId = 0
+
 async function reloadRoster() {
+  const requestId = ++rosterRequestId
+  // Clear previous data immediately so stale roster doesn't show during load
+  rosterData.value = null
   loading.value = true
   error.value = null
   try {
     const fresh = await apiRequest(`/roster${projectQuery(_rosterProjectId.value)}`)
+    // Discard if a newer request was issued while this one was in flight
+    if (requestId !== rosterRequestId) return
     rosterData.value = fresh
   } catch (err) {
+    if (requestId !== rosterRequestId) return
     error.value = err.message
     console.error('Failed to reload roster:', err)
   } finally {
-    loading.value = false
+    if (requestId === rosterRequestId) loading.value = false
   }
 }
 

@@ -38,7 +38,10 @@ async function loadPlan(version) {
   loading.value = true
   error.value = null
   try {
-    const nextPlan = await apiRequest(`/modules/releases/release-plan?version=${encodeURIComponent(version)}${projectQuery(useProjectId().value)}`)
+    const projectId = useProjectId().value
+    const params = new URLSearchParams({ version })
+    if (projectId) params.set('projectId', projectId)
+    const nextPlan = await apiRequest(`/modules/releases/release-plan?${params}`)
     if (requestId === planRequestId) plan.value = nextPlan
   } catch (e) {
     if (requestId === planRequestId) {
@@ -79,8 +82,13 @@ function retry() {
 
 onMounted(bootstrap)
 
-// Re-bootstrap when the project context changes
-watch(useProjectId(), () => bootstrap())
+// Re-bootstrap when the project context changes, clearing prior state
+watch(useProjectId(), () => {
+  plan.value = null
+  selectedVersion.value = ''
+  versions.value = []
+  bootstrap()
+})
 
 const matrixCells = computed(() => {
   if (!plan.value) return {}

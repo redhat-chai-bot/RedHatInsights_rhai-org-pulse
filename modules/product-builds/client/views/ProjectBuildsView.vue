@@ -96,8 +96,16 @@ async function load() {
   loading.value = true
   error.value = null
   unavailable.value = null
+  registry.value = null
   try {
-    registry.value = await apiRequest(`/modules/product-builds/project-publication${projectQuery(useProjectId().value)}`)
+    const result = await apiRequest(`/modules/product-builds/project-publication${projectQuery(useProjectId().value)}`)
+    // The publication route returns an unavailable envelope when the capability
+    // is not supported — handle that before treating it as a valid registry.
+    if (result && result.state === 'unavailable') {
+      unavailable.value = { reason: result.reason || 'Build registry is not available for this project' }
+    } else {
+      registry.value = result
+    }
   } catch (e) {
     if (e.status === 404) {
       unavailable.value = { reason: 'No build registry published for this project yet' }

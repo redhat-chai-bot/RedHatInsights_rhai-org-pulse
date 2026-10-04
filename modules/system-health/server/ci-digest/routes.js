@@ -36,9 +36,10 @@ module.exports = function registerCiDigestRoutes(router, context) {
     // The CI digest envelope is an OSAC-only data source: a non-OSAC project
     // never receives OSAC digest data. Project CI evidence flows through the
     // capability-driven release-execution publication instead.
-    if (req.query?.projectId && req.query.projectId !== 'osac') {
+    const projectId = req.query?.projectId
+    if (projectId && projectId !== 'osac') {
       return res.status(200).json({
-        projectId: req.query.projectId,
+        projectId,
         state: 'unavailable',
         reason: 'osac-only-data-source',
         data: null

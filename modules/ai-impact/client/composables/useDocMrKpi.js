@@ -1,4 +1,4 @@
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { apiRequest } from '@shared/client/services/api.js'
 import { useProjectId, projectQuery } from '@shared/client/composables/useProjectId.js'
 
@@ -20,6 +20,9 @@ export function useDocMrKpi() {
   }
 
   load()
+
+  // Re-fetch when project changes
+  watch(useProjectId(), () => load())
 
   return { mrKpiData, loading, error, load }
 }

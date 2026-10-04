@@ -2811,8 +2811,10 @@ module.exports = function registerRoutes(router, context) {
    */
   router.get('/roster', requireScope('roster:read'), function(req, res) {
     try {
-      if (req.query?.projectId) {
-        const result = readProjectRoster(context.projects, req.query.projectId);
+      if (req.query?.projectId !== undefined) {
+        const projectId = req.query.projectId;
+        if (!projectId) return res.status(400).json({ error: 'projectId must not be empty' });
+        const result = readProjectRoster(context.projects, projectId);
         if (result.status !== 200) return res.status(result.status).json({ error: result.error });
         return res.json(result.roster);
       }

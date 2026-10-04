@@ -27,7 +27,9 @@ function readProjectPublication(projects, projectId, capability) {
   try {
     profile = projects.get(projectId);
   } catch (error) {
-    return { status: 400, error: error.message };
+    // projects.get throws on malformed IDs (e.g. invalid kebab-case); treat as
+    // not-found rather than blaming the caller for upstream publication issues.
+    return { status: 404, error: error.message };
   }
   if (!profile) return { status: 404, error: 'Unknown project' };
 

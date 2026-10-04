@@ -16,8 +16,10 @@ function isValidVersion(version) {
 
 // OSAC keeps the legacy layout (its plans are still generated there); every
 // other project reads its own project-qualified release-plans directory.
+// The projectId is validated against VERSION_RE to prevent path traversal.
 function planPrefix(projectId) {
   if (projectId && projectId !== 'osac') {
+    if (!VERSION_RE.test(projectId)) return null
     return `projects/${projectId}/releases/release-plans`
   }
   return DATA_PREFIX
@@ -46,6 +48,7 @@ module.exports = function registerRoutes(router, context) {
    */
   router.get('/release-plans', requireAuth, requireScope('releases:read'), function(req, res) {
     const prefix = planPrefix(req.query?.projectId)
+    if (!prefix) return res.status(400).json({ error: 'Invalid projectId format' })
     const index = readFromStorage(`${prefix}/index.json`)
     res.json(index || { versions: [] })
   })
@@ -80,6 +83,7 @@ module.exports = function registerRoutes(router, context) {
     }
 
     const prefix = planPrefix(req.query?.projectId)
+    if (!prefix) return res.status(400).json({ error: 'Invalid projectId format' })
     const plan = readFromStorage(`${prefix}/${version}.json`)
     if (!plan) {
       return res.status(404).json({ error: 'Release plan not found' })

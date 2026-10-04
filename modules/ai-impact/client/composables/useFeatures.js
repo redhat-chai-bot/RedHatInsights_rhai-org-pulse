@@ -14,11 +14,16 @@ const featureTrendData = ref([])
 const featureBreakdown = ref([])
 const featureTimeWindow = ref('month')
 
+let featureRequestId = 0
+
 async function loadFeatures() {
+  const requestId = ++featureRequestId
   featureLoading.value = true
   featureError.value = null
   try {
     const data = await apiRequest(`/modules/ai-impact/features${projectQuery(useProjectId().value)}`)
+    // Discard if a newer request was issued while this one was in flight
+    if (requestId !== featureRequestId) return
     features.value = data.features || {}
     detailCache.value = {}
     featureMeta.value = {
@@ -26,9 +31,10 @@ async function loadFeatures() {
       totalFeatures: data.totalFeatures
     }
   } catch (e) {
+    if (requestId !== featureRequestId) return
     featureError.value = e.message
   } finally {
-    featureLoading.value = false
+    if (requestId === featureRequestId) featureLoading.value = false
   }
 }
 
@@ -54,7 +60,10 @@ async function loadFeatureDetail(key) {
     return detailCache.value[key]
   }
   try {
-    const data = await apiRequest(`/modules/ai-impact/features/${encodeURIComponent(key)}${projectQuery(useProjectId().value)}`)
+    const requestedProjectId = useProjectId().value
+    const data = await apiRequest(`/modules/ai-impact/features/${encodeURIComponent(key)}${projectQuery(requestedProjectId)}`)
+    // Discard if project changed while request was in flight
+    if (useProjectId().value !== requestedProjectId) return null
     detailCache.value[key] = data
     return data
   } catch (e) {
@@ -105,5 +114,6 @@ export function _resetForTesting() {
   featureTrendData.value = []
   featureBreakdown.value = []
   featureTimeWindow.value = 'month'
+  featureRequestId = 0
   hasFetched = true // prevent auto-fetch so tests control when loading happens
 }

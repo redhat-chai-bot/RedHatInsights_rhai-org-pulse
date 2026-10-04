@@ -10,9 +10,19 @@ module.exports = function registerRoutes(router, context) {
   // project-qualified artifact (e.g. the profile-driven autofix or EP-review
   // collectors), that data is served instead — never an OSAC fallback.
   function osacOnlyDataGuard(req, res) {
-    if (req.query?.projectId && req.query.projectId !== 'osac') {
+    const projectId = req.query?.projectId;
+    if (projectId && projectId !== 'osac') {
+      // Reject unknown projects with 404 instead of a silent 200 unavailable
+      if (context.projects && typeof context.projects.get === 'function') {
+        let profile = null;
+        try { profile = context.projects.get(projectId); } catch { /* validation error → unknown */ }
+        if (!profile) {
+          res.status(404).json({ error: 'Unknown project' });
+          return true;
+        }
+      }
       res.status(200).json({
-        projectId: req.query.projectId,
+        projectId,
         state: 'unavailable',
         reason: 'osac-only-data-source',
         data: null

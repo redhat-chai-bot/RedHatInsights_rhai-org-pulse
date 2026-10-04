@@ -19,12 +19,22 @@ const loading = ref(true)
 const error = ref(null)
 const notFound = ref(false)
 
+const unavailableReason = ref(null)
+
 async function load() {
   loading.value = true
   error.value = null
   notFound.value = false
+  unavailableReason.value = null
   try {
-    envelope.value = await apiRequest(`/modules/system-health/ci-digest${projectQuery(useProjectId().value)}`)
+    const result = await apiRequest(`/modules/system-health/ci-digest${projectQuery(useProjectId().value)}`)
+    // The endpoint returns a 200 unavailable envelope for non-OSAC projects
+    if (result && result.state === 'unavailable') {
+      unavailableReason.value = result.reason || 'CI digest is not available for this project'
+      envelope.value = null
+    } else {
+      envelope.value = result
+    }
   } catch (e) {
     if (e.status === 404) {
       notFound.value = true
@@ -272,6 +282,17 @@ function retry() {
         @click="retry"
         class="mt-4 px-4 py-2 text-sm font-medium text-primary-600 dark:text-primary-400 hover:underline"
       >Try again</button>
+    </div>
+
+    <!-- Unavailable for non-OSAC projects -->
+    <div
+      v-else-if="unavailableReason"
+      class="text-center py-16 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
+    >
+      <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-1">CI digest unavailable</h3>
+      <p class="text-sm text-gray-500 dark:text-gray-400">
+        {{ unavailableReason }}
+      </p>
     </div>
 
     <!-- Missing data -->

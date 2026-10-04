@@ -102,7 +102,10 @@ function formatDate(value) {
   return Number.isNaN(date.getTime()) ? value : date.toLocaleString()
 }
 
+let loadRequestId = 0
+
 async function load() {
+  const requestId = ++loadRequestId
   loading.value = true
   error.value = null
   unavailable.value = null
@@ -110,17 +113,20 @@ async function load() {
   envelope.value = null
   try {
     const next = await apiRequest(`/modules/system-health/release-execution${projectQuery(useProjectId().value)}`)
+    // Discard if a newer load was triggered while this request was in flight
+    if (requestId !== loadRequestId) return
     envelope.value = next
     data.value = next?.data || null
     if (!data.value) unavailable.value = next?.error || 'No release execution publication for this project'
   } catch (e) {
+    if (requestId !== loadRequestId) return
     if (e.status === 404) {
       unavailable.value = 'No release execution publication for this project yet'
     } else {
       error.value = e.message || 'Failed to load release execution evidence'
     }
   } finally {
-    loading.value = false
+    if (requestId === loadRequestId) loading.value = false
   }
 }
 

@@ -584,8 +584,10 @@ function registerRegistryRoutes(router, context) {
    *                     type: object
    */
   router.get('/registry', requireAuth, requireScope('releases:read'), function(req, res) {
-    if (req.query?.projectId) {
-      const result = readProjectRegistry(projects, req.query.projectId);
+    const projectId = req.query?.projectId;
+    if (projectId !== undefined) {
+      if (!projectId) return res.status(400).json({ error: 'projectId must not be empty' });
+      const result = readProjectRegistry(projects, projectId);
       if (result.status !== 200) return res.status(result.status).json({ error: result.error });
       return res.json(result.registry);
     }

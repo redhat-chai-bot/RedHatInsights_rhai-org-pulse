@@ -1,4 +1,4 @@
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { apiRequest } from '@shared/client/services/api.js'
 import { useProjectId, projectQuery } from '@shared/client/composables/useProjectId.js'
 
@@ -50,6 +50,9 @@ export function useTestPlans() {
       throw e
     }
   }
+
+  // Re-fetch when project changes — clears caches through loadTestPlans
+  watch(useProjectId(), () => loadTestPlans())
 
   return {
     testPlans,

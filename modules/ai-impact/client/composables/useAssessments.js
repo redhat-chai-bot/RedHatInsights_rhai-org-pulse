@@ -1,4 +1,4 @@
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { apiRequest } from '@shared/client/services/api.js'
 import { useProjectId, projectQuery } from '@shared/client/composables/useProjectId.js'
 
@@ -20,6 +20,8 @@ async function loadAssessments() {
       lastSyncedAt: data.lastSyncedAt,
       totalAssessed: data.totalAssessed
     }
+    // Clear detail cache on project switch so stale details don't leak
+    detailCache.value = {}
   } catch (e) {
     assessmentError.value = e.message
   } finally {
@@ -28,12 +30,18 @@ async function loadAssessments() {
 }
 
 async function loadAssessmentDetail(key) {
-  if (detailCache.value[key]) {
-    return detailCache.value[key]
+  const projectId = useProjectId().value
+  const cacheKey = projectId ? `${projectId}::${key}` : key
+  if (detailCache.value[cacheKey]) {
+    return detailCache.value[cacheKey]
   }
   try {
-    const data = await apiRequest(`/modules/ai-impact/assessments/${encodeURIComponent(key)}${projectQuery(useProjectId().value)}`)
-    detailCache.value[key] = data
+    const requestedProjectId = projectId
+    const data = await apiRequest(`/modules/ai-impact/assessments/${encodeURIComponent(key)}${projectQuery(requestedProjectId)}`)
+    // Discard if project changed while request was in flight
+    if (useProjectId().value !== requestedProjectId) return null
+    const storageKey = requestedProjectId ? `${requestedProjectId}::${key}` : key
+    detailCache.value[storageKey] = data
     return data
   } catch (e) {
     if (e.message && e.message.includes('404')) {
@@ -42,6 +50,9 @@ async function loadAssessmentDetail(key) {
     throw e
   }
 }
+
+// Re-fetch when project changes
+watch(useProjectId(), () => loadAssessments())
 
 export function useAssessments() {
   if (!hasFetched) {

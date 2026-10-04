@@ -49,9 +49,19 @@ module.exports = function registerRoutes(router, context) {
   // receives AIPCC data. Project build evidence is exposed through the
   // capability-driven publication route instead.
   function osacOnlyDataGuard(req, res) {
-    if (req.query?.projectId && req.query.projectId !== 'osac') {
+    const projectId = req.query?.projectId;
+    if (projectId && projectId !== 'osac') {
+      // Reject unknown projects with 404 instead of a silent 200 unavailable
+      if (context.projects && typeof context.projects.get === 'function') {
+        let profile = null;
+        try { profile = context.projects.get(projectId); } catch { /* validation error → unknown */ }
+        if (!profile) {
+          res.status(404).json({ error: 'Unknown project' });
+          return true;
+        }
+      }
       res.status(200).json({
-        projectId: req.query.projectId,
+        projectId,
         state: 'unavailable',
         reason: 'osac-only-data-source',
         data: null
@@ -141,7 +151,7 @@ module.exports = function registerRoutes(router, context) {
    *         description: Health status with latency
    */
   router.get('/health', async function(req, res) {
-    if (osacOnlyDataGuard(req, res)) return;
+    if (osacOnlyDataGuard(req, res)) return; // health is not proxied via upstream()
     const { baseUrl } = getConfig(readFromStorage);
     if (!baseUrl) {
       return res.json({ status: 'not_configured' });
@@ -167,6 +177,7 @@ module.exports = function registerRoutes(router, context) {
   // --- Helper to get baseUrl for proxy ---
 
   function upstream(upstreamPath, req, res) {
+    if (osacOnlyDataGuard(req, res)) return;
     const { baseUrl } = getConfig(readFromStorage);
     return proxyGet(baseUrl, upstreamPath, req.query, res);
   }
@@ -196,7 +207,6 @@ module.exports = function registerRoutes(router, context) {
    *         description: AIPCC Dashboard API not configured
    */
   router.get('/products/:key', function(req, res) {
-    if (osacOnlyDataGuard(req, res)) return;
     upstream(`/products/${encodeURIComponent(req.params.key)}`, req, res);
   });
 
@@ -248,7 +258,6 @@ module.exports = function registerRoutes(router, context) {
    *         description: Array of Drop objects (key, name, product_key, product_version, git_branch, environments, release_timings, created_at)
    */
   router.get('/drops', function(req, res) {
-    if (osacOnlyDataGuard(req, res)) return;
     upstream('/drops', req, res);
   });
 
@@ -273,7 +282,6 @@ module.exports = function registerRoutes(router, context) {
    *         description: Drop not found
    */
   router.get('/drops/:key', function(req, res) {
-    if (osacOnlyDataGuard(req, res)) return;
     upstream(`/drops/${encodeURIComponent(req.params.key)}`, req, res);
   });
 
@@ -298,7 +306,6 @@ module.exports = function registerRoutes(router, context) {
    *         description: Drop not found
    */
   router.get('/drops/:key/changelog', function(req, res) {
-    if (osacOnlyDataGuard(req, res)) return;
     upstream(`/drops/${encodeURIComponent(req.params.key)}/changelog`, req, res);
   });
 
@@ -478,6 +485,8 @@ module.exports = function registerRoutes(router, context) {
   router.get('/artifacts', function(req, res) {
     upstream('/artifacts', req, res);
   });
+
+
 
   /**
    * @openapi
